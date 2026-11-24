@@ -1,0 +1,13 @@
+rule_id,scope,applies_to,type,value,stackable,min_cart_value
+RULE-01,platform,Amazon India,percentage,15,false,
+RULE-02,brand,Natura Casa,flat,150,false,
+RULE-03,platform,Flipkart,percentage,10,true,
+RULE-04,brand,Urban Loom,percentage,20,false,
+RULE-05,brand,Kraft & Co,flat,500,false,
+RULE-06,platform,Noon,flat,75,true,
+RULE-07,brand,Zenith Home,percentage,12,true,
+RULE-08,platform,Nykaa Home,percentage,25,false,
+RULE-09,brand,LivSpace Pro,percentage,18,false,
+RULE-10,cart,,percentage,5,false,3000
+RULE-11,cart,,percentage,10,false,10000
+RULE-12,cart,,flat,300,true,20000
