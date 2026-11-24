@@ -2,7 +2,9 @@
 
 Opptra FDE Intern assignment. A customer-facing cart pricing engine: item-level offers (max discount, with stacking), a cart-level offer, plain-English rule input parsed by an LLM, and PDF cart upload.
 
-**Live URL:** `https://<your-service>.onrender.com` _(add after deploying)_
+**Live URL:** https://smartcart-discount-engine.onrender.com
+
+The free Render plan sleeps when idle, so the first load can take about 30 seconds.
 
 ## Run locally (3 steps)
 
