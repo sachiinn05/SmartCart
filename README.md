@@ -12,7 +12,7 @@ cp backend/.env.example backend/.env   # optional: add GROQ_API_KEY
 npm run dev        # http://localhost:5173  (API on :3001)
 ```
 
-Then upload `sample-data/rules.csv` and `sample-data/cart.csv` and click **Calculate Discounts**. Expected final total: **Rs.5,339**. `sample-data/cart.pdf` is a sample for the PDF upload.
+Click **Basic example** (or upload `sample-data/rules.csv` and `sample-data/cart.csv`). Prices are calculated as soon as both a rules set and a cart are loaded. Expected final total: **Rs.5,339**. `sample-data/cart.pdf` is a sample for the PDF upload.
 
 `npm test` runs the engine tests (frontend, Vitest) and the parser/validator tests (backend, node:test).
 

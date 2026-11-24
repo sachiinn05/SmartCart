@@ -7,9 +7,19 @@ import CartTable from './components/CartTable.jsx'
 import OrderSummary from './components/OrderSummary.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import ErrorBanner from './components/ErrorBanner.jsx'
+import { CartIcon, CheckIcon } from './components/icons.jsx'
 import { parseRulesCSV, parseCartCSV } from './engine/csvParser.js'
 import { calculateCart } from './engine/discountEngine.js'
 import { loadState, saveRules, saveCart, saveHistory, loadHistory, clearSaved } from './persistence/store.js'
+import basicRules from '../../sample-data/rules.csv?raw'
+import basicCart from '../../sample-data/cart.csv?raw'
+import bigRules from '../../sample-data/rules-tough.csv?raw'
+import bigCart from '../../sample-data/cart-large.csv?raw'
+
+const SAMPLES = {
+  basic: { label: 'Basic example (6 items)', rules: basicRules, cart: basicCart },
+  big: { label: 'Big example (45 items)', rules: bigRules, cart: bigCart },
+}
 
 export default function App() {
   const [rules, setRules] = useState([])
@@ -20,17 +30,14 @@ export default function App() {
   const [cartErrors, setCartErrors] = useState([])
   const [cartFileName, setCartFileName] = useState('')
 
-  const [calculated, setCalculated] = useState(false)
-
   const [dbEnabled, setDbEnabled] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [history, setHistory] = useState([])
   const skipNextHistory = useRef(false)
 
-  const canCalculate = rules.length > 0 && cartItems.length > 0
   const results = useMemo(
-    () => (calculated && canCalculate ? calculateCart(cartItems, rules) : null),
-    [calculated, canCalculate, cartItems, rules]
+    () => (rules.length > 0 && cartItems.length > 0 ? calculateCart(cartItems, rules) : null),
+    [cartItems, rules]
   )
   const baseTotal = cartItems.reduce((sum, i) => sum + i.basePrice, 0)
 
@@ -43,16 +50,13 @@ export default function App() {
         setDbEnabled(true)
         if (state.rules?.length) {
           setRules(state.rules)
-          setRulesFileName('saved rules')
+          setRulesFileName('From your last visit')
         }
         if (state.cartItems?.length) {
           setCartItems(state.cartItems)
-          setCartFileName('saved cart')
+          setCartFileName('From your last visit')
         }
-        if (state.rules?.length && state.cartItems?.length) {
-          skipNextHistory.current = true
-          setCalculated(true)
-        }
+        if (state.rules?.length && state.cartItems?.length) skipNextHistory.current = true
         const h = await loadHistory()
         if (!cancelled) setHistory(h.history ?? [])
       }
@@ -82,19 +86,22 @@ export default function App() {
       await saveHistory(results)
       const h = await loadHistory()
       setHistory(h.history ?? [])
-    }, 800)
+    }, 1200)
     return () => clearTimeout(timer)
   }, [results, loaded, dbEnabled])
 
-  async function handleClearSaved() {
-    await clearSaved()
+  function resetAll() {
     setRules([])
     setRulesErrors([])
     setRulesFileName('')
     setCartItems([])
     setCartErrors([])
     setCartFileName('')
-    setCalculated(false)
+  }
+
+  async function handleClearSaved() {
+    await clearSaved()
+    resetAll()
     setHistory([])
   }
 
@@ -115,90 +122,141 @@ export default function App() {
   function handlePdfItems(items, fileName) {
     setCartItems(items)
     setCartFileName(fileName)
-    if (rules.length > 0) setCalculated(true)
   }
 
   function handleRuleConfirm(rule) {
     setRules((prev) => [...prev, rule])
-    if (cartItems.length > 0) setCalculated(true)
   }
+
+  function handleRemoveRule(ruleId) {
+    setRules((prev) => prev.filter((r) => r.ruleId !== ruleId))
+  }
+
+  function loadSample(key) {
+    const s = SAMPLES[key]
+    handleRulesLoad(s.rules, 'Example rules')
+    handleCartLoad(s.cart, 'Example cart')
+  }
+
+  const steps = [
+    { n: 1, label: 'Add discount rules', done: rules.length > 0 },
+    { n: 2, label: 'Add your cart', done: cartItems.length > 0 },
+    { n: 3, label: 'See your savings', done: Boolean(results) },
+  ]
+  const current = steps.find((s) => !s.done)?.n ?? 3
 
   return (
     <>
-      <header className="topbar">
-        <span className="wordmark">
-          O<b>pp</b>tra
-        </span>
-        <span className="sub">Discount engine</span>
-        {dbEnabled && <span className="status">Saved to database</span>}
+      <header className="hero">
+        <div className="wrap">
+          <div className="brand-row">
+            <span className="logo">
+              <CartIcon />
+            </span>
+            <span className="brand">SmartCart</span>
+            <span className="grow" />
+            {dbEnabled && <span className="saved-badge">Progress saved</span>}
+            {(rules.length > 0 || cartItems.length > 0) && (
+              <button type="button" className="btn ghost-light" onClick={handleClearSaved}>
+                Start over
+              </button>
+            )}
+          </div>
+          <h1>Every item gets its best price</h1>
+          <p className="sub">
+            Add your discount rules and your cart. We pick the best offer for each item, stack the ones that stack, and
+            add up what you save.
+          </p>
+          <ol className="steps">
+            {steps.map((s) => (
+              <li key={s.n} className={s.done ? 'done' : s.n === current ? 'now' : ''}>
+                <span className="num">{s.done ? <CheckIcon /> : s.n}</span>
+                {s.label}
+              </li>
+            ))}
+          </ol>
+        </div>
       </header>
 
-      <div className="layout">
+      <main className="wrap page">
+        {results && (
+          <section className="results first">
+            <h2 className="results-title">
+              <span className="step-dot green">3</span> Your savings
+            </h2>
+            <div className="cart-grid">
+              <CartTable items={cartItems} results={results.items} />
+              <OrderSummary results={results} baseTotal={baseTotal} />
+            </div>
+            <h2 className="change-title">Want to change something?</h2>
+          </section>
+        )}
+
+        <div className="try-bar">
+          <span>No files handy? Try an example:</span>
+          {Object.entries(SAMPLES).map(([key, s]) => (
+            <button key={key} type="button" className="btn orange" onClick={() => loadSample(key)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
         <div className="setup">
-          <section className="block">
-            <h2>Rules</h2>
-            <CsvUploader label="rules.csv" onLoad={handleRulesLoad} fileName={rulesFileName} />
+          <section className="card rules-card">
+            <div className="card-head">
+              <h2>
+                <span className="step-dot indigo">1</span> Discount rules
+              </h2>
+            </div>
+            <CsvUploader
+              title="Upload a rules file (CSV)"
+              hint="Drop it here or click to browse"
+              onLoad={handleRulesLoad}
+              fileName={rulesFileName}
+            />
             <ErrorBanner errors={rulesErrors} />
             <RuleInput rules={rules} cartItems={cartItems} onConfirm={handleRuleConfirm} />
-            <RuleList rules={rules} />
+            <RuleList rules={rules} onRemove={handleRemoveRule} />
           </section>
 
-          <section className="block">
-            <h2>Cart</h2>
-            <CsvUploader label="cart.csv" onLoad={handleCartLoad} fileName={cartFileName} />
+          <section className="card cart-card">
+            <div className="card-head">
+              <h2>
+                <span className="step-dot orange">2</span> Your cart
+              </h2>
+            </div>
+            <CsvUploader
+              title="Upload a cart file (CSV)"
+              hint="Drop it here or click to browse"
+              onLoad={handleCartLoad}
+              fileName={cartFileName}
+            />
+            <div className="or">or</div>
             <PdfUploader rules={rules} cartItems={cartItems} onItems={handlePdfItems} onErrors={setCartErrors} />
-            <ErrorBanner errors={cartErrors} />
+            <ErrorBanner errors={cartErrors} title="Some rows in the PDF were skipped" />
             {cartItems.length > 0 && (
-              <div className="count">
-                {cartItems.length} item{cartItems.length > 1 ? 's' : ''} loaded
+              <div className="cart-count">
+                <b>{cartItems.length}</b> item{cartItems.length > 1 ? 's' : ''} in your cart, worth{' '}
+                <b>Rs.{baseTotal.toLocaleString('en-IN')}</b>
               </div>
             )}
           </section>
-
-          <section className="block">
-            <button
-              type="button"
-              className="btn primary block-wide"
-              disabled={!canCalculate}
-              onClick={() => setCalculated(true)}
-            >
-              Calculate discounts
-            </button>
-            {!canCalculate && <p className="hint">Load rules and a cart first.</p>}
-          </section>
-
-          {dbEnabled && (
-            <section className="block">
-              <HistoryPanel history={history} onClear={handleClearSaved} />
-            </section>
-          )}
         </div>
 
-        <main className="main">
-          {results ? (
-            <>
-              <h1>Your cart</h1>
-              <p className="lead">Each item gets the best offer available for it.</p>
-              <div className="cart-grid">
-                <CartTable items={cartItems} results={results.items} />
-                <OrderSummary results={results} baseTotal={baseTotal} />
-              </div>
-            </>
-          ) : cartItems.length > 0 ? (
-            <>
-              <h1>Cart</h1>
-              <p className="lead">Load some rules, then calculate to see the offers.</p>
-              <CartTable items={cartItems} />
-            </>
-          ) : (
-            <div className="empty">
-              <strong>Nothing to price yet</strong>
-              Upload a rules file and a cart on the left, or describe a rule in plain English. Example files are in the
-              sample-data folder.
-            </div>
-          )}
-        </main>
-      </div>
+        {!results && cartItems.length > 0 && (
+          <section className="results">
+            <div className="alert amber big">Your cart is loaded. Add at least one discount rule to see the savings.</div>
+            <CartTable items={cartItems} />
+          </section>
+        )}
+        {!results && cartItems.length === 0 && rules.length > 0 && (
+          <section className="results">
+            <div className="alert amber big">Your rules are ready. Now add a cart to price.</div>
+          </section>
+        )}
+
+        {dbEnabled && <HistoryPanel history={history} onClear={handleClearSaved} />}
+      </main>
     </>
   )
 }
