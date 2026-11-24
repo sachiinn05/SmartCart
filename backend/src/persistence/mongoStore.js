@@ -1,20 +1,3 @@
-/**
- * mongoStore.js - optional MongoDB persistence.
- *
- * Every store (this one, or the in-memory one used in tests) exposes the same interface,
- * so routes never know which is behind them:
- *
- *   getState(sid)            -> { rules, cartItems }
- *   saveRules(sid, rules)
- *   saveCart(sid, items)
- *   addHistory(sid, entry)
- *   listHistory(sid, limit)  -> entry[]  (newest first)
- *   clear(sid)
- *
- * `sid` is an anonymous per-browser id, so visitors to a public deployment never see each other's data.
- * Documents expire after 30 days (TTL index), so nothing is kept indefinitely.
- */
-
 import mongoose from 'mongoose'
 
 const THIRTY_DAYS = 60 * 60 * 24 * 30
@@ -64,7 +47,7 @@ export async function createMongoStore(uri) {
 
     async addHistory(sid, entry) {
       await History.create({ sid, ...entry })
-      // keep only the newest HISTORY_LIMIT entries per visitor
+
       const old = await History.find({ sid }).sort({ createdAt: -1 }).skip(HISTORY_LIMIT).select('_id').lean()
       if (old.length) await History.deleteMany({ _id: { $in: old.map((d) => d._id) } })
     },

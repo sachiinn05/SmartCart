@@ -1,7 +1,3 @@
-/**
- * HistoryPanel.jsx - past calculations for this browser (only shown when a database is connected).
- */
-
 const inr = (v) => `Rs.${v.toLocaleString('en-IN')}`
 
 export default function HistoryPanel({ history, onClear }) {

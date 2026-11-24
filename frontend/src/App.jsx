@@ -1,17 +1,3 @@
-/**
- * App.jsx
- *
- * Holds state (rules, cart) and wires the three input modes to the engine:
- *   CSV upload  ─┐
- *   PDF upload  ─┼─> rules / cartItems state ─> calculateCart() ─> results
- *   NL rule     ─┘
- * Results are derived, so any input change re-runs the engine automatically
- * once the user has calculated at least once.
- *
- * Persistence is optional: if the server has a database, rules/cart are restored on load,
- * saved on change, and every calculation is logged. Otherwise nothing here does anything.
- */
-
 import { useEffect, useMemo, useRef, useState } from 'react'
 import CsvUploader from './components/CsvUploader.jsx'
 import PdfUploader from './components/PdfUploader.jsx'
@@ -26,7 +12,7 @@ import { loadState, saveRules, saveCart, saveHistory, loadHistory, clearSaved } 
 const inr = (v) => `Rs.${v.toLocaleString('en-IN')}`
 const cap = (v) => v.charAt(0).toUpperCase() + v.slice(1)
 
-// ── Column definitions ───────────────────────────────────────────
+
 
 const RULES_COLUMNS = [
   { key: 'ruleId', label: 'Rule ID' },
@@ -71,7 +57,7 @@ const RESULTS_COLUMNS = [
   },
 ]
 
-// ── Styles ───────────────────────────────────────────────────────
+
 
 const S = {
   page: { minHeight: '100vh', background: '#f7f7f9', fontFamily: 'Arial, sans-serif' },
@@ -88,7 +74,7 @@ const S = {
   sumRow: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', padding: '0.4rem 0.7rem', fontSize: 13, color: '#131A48' },
 }
 
-// ── Component ────────────────────────────────────────────────────
+
 
 export default function App() {
   const [rules, setRules] = useState([])
@@ -101,7 +87,7 @@ export default function App() {
 
   const [calculated, setCalculated] = useState(false)
 
-  // optional persistence
+
   const [dbEnabled, setDbEnabled] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [history, setHistory] = useState([])
@@ -113,9 +99,9 @@ export default function App() {
     [calculated, canCalculate, cartItems, rules]
   )
 
-  // ── Persistence ──
 
-  // Restore saved rules/cart once on load.
+
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -126,7 +112,7 @@ export default function App() {
         if (state.rules?.length) { setRules(state.rules); setRulesFileName('saved rules') }
         if (state.cartItems?.length) { setCartItems(state.cartItems); setCartFileName('saved cart') }
         if (state.rules?.length && state.cartItems?.length) {
-          skipNextHistory.current = true // restoring is not a new calculation
+          skipNextHistory.current = true
           setCalculated(true)
         }
         const h = await loadHistory()
@@ -140,7 +126,7 @@ export default function App() {
   useEffect(() => { if (loaded && dbEnabled) saveRules(rules) }, [rules, loaded, dbEnabled])
   useEffect(() => { if (loaded && dbEnabled) saveCart(cartItems) }, [cartItems, loaded, dbEnabled])
 
-  // Log each new calculation (debounced so rapid changes make one entry).
+
   useEffect(() => {
     if (!results || !loaded || !dbEnabled) return
     if (skipNextHistory.current) { skipNextHistory.current = false; return }
@@ -160,7 +146,7 @@ export default function App() {
     setHistory([])
   }
 
-  // ── Handlers ──
+
 
   function handleRulesLoad(csvText, fileName) {
     const { data, errors } = parseRulesCSV(csvText)
@@ -177,9 +163,9 @@ export default function App() {
   }
 
   function handlePdfItems(items, fileName) {
-    setCartItems(items) // replaces the cart
+    setCartItems(items)
     setCartFileName(fileName)
-    if (rules.length > 0) setCalculated(true) // engine re-runs with the existing rules
+    if (rules.length > 0) setCalculated(true)
   }
 
   function handleRuleConfirm(rule) {
@@ -187,7 +173,7 @@ export default function App() {
     if (cartItems.length > 0) setCalculated(true)
   }
 
-  // ── Render ──
+
 
   return (
     <div style={S.page}>
@@ -199,9 +185,7 @@ export default function App() {
       </div>
 
       <div style={S.main}>
-        <div style={S.grid2}>
-          {/* Rules */}
-          <div style={S.section}>
+        <div style={S.grid2}>          <div style={S.section}>
             <div style={S.sectionTitle}>Discount Rules</div>
             <CsvUploader label="rules.csv" description="Upload your discount rules CSV" onLoad={handleRulesLoad} hasData={rulesFileName !== ''} fileName={rulesFileName} />
             <ErrorBanner errors={rulesErrors} />
@@ -217,10 +201,7 @@ export default function App() {
                 <DataTable columns={RULES_COLUMNS} rows={rules} />
               </div>
             )}
-          </div>
-
-          {/* Cart */}
-          <div style={S.section}>
+          </div>          <div style={S.section}>
             <div style={S.sectionTitle}>Cart Items</div>
             <CsvUploader label="cart.csv" description="Upload your cart CSV" onLoad={handleCartLoad} hasData={cartItems.length > 0} fileName={cartFileName} />
             <PdfUploader rules={rules} cartItems={cartItems} onItems={handlePdfItems} onErrors={setCartErrors} />

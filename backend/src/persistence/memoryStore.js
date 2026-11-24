@@ -1,8 +1,3 @@
-/**
- * memoryStore.js - same interface as mongoStore, held in a Map.
- * Used by tests so the API can be exercised without a database.
- */
-
 export function createMemoryStore() {
   const states = new Map()
   const histories = new Map()

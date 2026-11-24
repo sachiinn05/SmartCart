@@ -1,17 +1,3 @@
-/**
- * state.js - persistence routes. Only mounted behaviour-wise when a store exists;
- * with no database configured every route answers { enabled: false } and the app stays in-memory.
- *
- *   GET    /api/state      -> { enabled, rules, cartItems }
- *   PUT    /api/rules      { rules }
- *   PUT    /api/cart       { items }
- *   POST   /api/history    { itemCount, subtotal, cartOffer, finalTotal, items }
- *   GET    /api/history    -> { enabled, history }
- *   DELETE /api/state      clears this browser's saved data
- *
- * Everything from the client is untrusted: it is rebuilt field by field, never stored as-is.
- */
-
 import { Router } from 'express'
 
 const SID_RE = /^[A-Za-z0-9-]{8,64}$/
@@ -84,7 +70,6 @@ function cleanHistory(b) {
 export function createStateRouter(store) {
   const router = Router()
 
-  // No database configured: report it, do nothing.
   if (!store) {
     router.get('/state', (_req, res) => res.json({ enabled: false, rules: [], cartItems: [] }))
     router.get('/history', (_req, res) => res.json({ enabled: false, history: [] }))

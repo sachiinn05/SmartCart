@@ -14,7 +14,6 @@ const hint = (v) => {
   }
 }
 
-// POST /api/parse-pdf   multipart: file=<pdf>, brands/platforms = JSON arrays (optional hints)
 router.post('/parse-pdf', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ status: 'error', message: 'No file uploaded.' })
   const isPdf = req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf')
@@ -33,7 +32,6 @@ router.post('/parse-pdf', upload.single('file'), async (req, res) => {
   }
 })
 
-// multer errors (e.g. file too large)
 router.use((err, _req, res, _next) => {
   const message = err.code === 'LIMIT_FILE_SIZE' ? 'PDF is larger than 5 MB.' : 'Upload failed.'
   res.status(400).json({ status: 'error', message })

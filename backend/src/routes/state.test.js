@@ -49,7 +49,7 @@ test('invalid payloads are rejected, not stored', async () => {
   assert.equal((await call(urlA, 'PUT', '/rules', { rules: 'nope' })).status, 400)
   assert.equal((await call(urlA, 'PUT', '/cart', { items: [{ ...item, basePrice: -5 }] })).status, 400)
   const s = await call(urlA, 'GET', '/state')
-  assert.equal(s.body.rules.length, 2) // earlier good data untouched
+  assert.equal(s.body.rules.length, 2)
 })
 
 test('extra fields from the client are dropped', async () => {

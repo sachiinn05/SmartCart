@@ -1,5 +1,3 @@
-# Render Blueprint: one web service serves the API and the built React app.
-# Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
 services:
   - type: web
     name: smartcart-discount-engine
@@ -12,8 +10,8 @@ services:
       - key: NODE_VERSION
         value: 22
       - key: GROQ_API_KEY
-        sync: false   # paste your key in the Render dashboard (optional)
+        sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-20b
       - key: MONGODB_URI
-        sync: false   # optional: MongoDB Atlas connection string; empty = in-memory only
+        sync: false

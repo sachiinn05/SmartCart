@@ -6,7 +6,7 @@ import { parseCartText } from './pdfCartParser.js'
 
 const ctx = { brands: ['Natura Casa', 'LivSpace Pro'], platforms: ['Amazon India', 'Flipkart', 'Noon'] }
 
-// ── validator ──
+
 test('validator canonicalises casing and accepts a good rule', () => {
   const r = validateRule({ scope: 'brand', appliesTo: 'natura casa', type: 'percentage', value: 20, stackable: true }, ctx)
   assert.equal(r.ok, true)
@@ -24,7 +24,7 @@ test('validator warns when the brand is not in the cart', () => {
   assert.equal(r.warnings.length, 1)
 })
 
-// ── keyword fallback: the three examples + the ambiguous one from the brief ──
+
 test('fallback: brand percentage stackable', () => {
   const r = keywordParse('20% off for Natura Casa brand, stackable with other offers', ctx)
   assert.deepEqual([r.scope, r.appliesTo, r.type, r.value, r.stackable], ['brand', 'Natura Casa', 'percentage', 20, true])
@@ -47,7 +47,7 @@ test('fallback: "non-stackable" is not read as stackable', () => {
   assert.equal(r.stackable, false)
 })
 
-// ── PDF rows ──
+
 test('pdf: tab/space separated table parses all 6 rows', () => {
   const text = [
     'Order #OP-9921\t|\tDate: 15 Jan 2025',
@@ -82,7 +82,7 @@ test('pdf: no table at all gives a helpful error', () => {
   assert.match(errors[0], /Expected a table/)
 })
 
-// ── tough rule text ──
+
 test('fallback: brand + cart threshold in one sentence is refused, not silently reduced', () => {
   const r = keywordParse('25 percent off nykaa home but only if the cart is above 50000', { platforms: ['Nykaa Home'], brands: [] })
   assert.equal(r.resolvable, false)

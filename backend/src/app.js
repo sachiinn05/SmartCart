@@ -9,7 +9,6 @@ import { createStateRouter } from './routes/state.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-/** Builds the Express app. `store` is optional: null means no database (in-memory app). */
 export function createApp(store = null) {
   const app = express()
   app.use(cors())
@@ -22,7 +21,6 @@ export function createApp(store = null) {
   app.use('/api', cartRouter)
   app.use('/api', createStateRouter(store))
 
-  // Production: serve the built frontend from the same service (one Render web service).
   const dist = path.resolve(__dirname, '../../frontend/dist')
   if (fs.existsSync(dist)) {
     app.use(express.static(dist))

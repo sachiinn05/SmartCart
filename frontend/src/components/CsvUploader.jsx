@@ -1,10 +1,3 @@
-/**
- * CsvUploader.jsx
- *
- * Renders a file upload area for a single CSV file.
- * Calls onLoad(rawText) when a file is selected.
- */
-
 import { useRef } from 'react'
 
 export default function CsvUploader({ label, description, onLoad, hasData, fileName }) {
@@ -16,7 +9,7 @@ export default function CsvUploader({ label, description, onLoad, hasData, fileN
     const reader = new FileReader()
     reader.onload = (evt) => onLoad(evt.target.result, file.name)
     reader.readAsText(file)
-    // Reset input so the same file can be re-uploaded
+
     e.target.value = ''
   }
 

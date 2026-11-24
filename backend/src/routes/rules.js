@@ -3,7 +3,6 @@ import { parseRuleText } from '../services/ruleParser.js'
 
 const router = Router()
 
-// POST /api/parse-rule  { text, context: { brands: [], platforms: [] } }
 router.post('/parse-rule', async (req, res) => {
   const { text, context } = req.body ?? {}
   const list = (v) => (Array.isArray(v) ? v.map(String).slice(0, 100) : [])

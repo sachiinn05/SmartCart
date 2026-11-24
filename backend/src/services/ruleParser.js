@@ -1,18 +1,3 @@
-/**
- * ruleParser.js
- *
- * Turns a plain-English description into a validated DiscountRule (without ruleId -
- * the client assigns that, it owns the rule list).
- *
- * Flow:
- *   1. Ask the LLM (Groq) for strict JSON, with the known brands/platforms as context.
- *   2. LLM says "unresolvable"  -> surface its reason, do NOT guess.
- *   3. LLM down / no key / bad JSON / fails validation -> try the deterministic
- *      keyword parser. If that cannot resolve it either, report unresolvable.
- *
- * Result: { status: 'ok', rule, warnings, source } | { status: 'unresolvable', message, source }
- */
-
 import { validateRule } from './ruleValidator.js'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -39,7 +24,7 @@ If a value, a target, or a cart threshold is missing or vague (e.g. "a discount 
 {"resolvable": false, "reason": "<one short sentence telling the user what to specify>"}
 Never invent numbers or names.`
 
-// ── LLM path ─────────────────────────────────────────────────────
+
 
 async function askLlm(text, ctx) {
   const key = process.env.GROQ_API_KEY
@@ -76,7 +61,7 @@ async function askLlm(text, ctx) {
   }
 }
 
-// ── Deterministic fallback ───────────────────────────────────────
+
 
 const NUM = '([\\d][\\d,]*(?:\\.\\d+)?)'
 const RUPEE = '(?:rs\\.?|₹|inr)\\s*'
@@ -85,7 +70,7 @@ const num = (s) => Number(s.replace(/,/g, ''))
 export function keywordParse(text, ctx = {}) {
   let t = text.toLowerCase()
 
-  // 1. threshold ("more than / above / over / at least / minimum  Rs.5,000")
+
   let minCartValue = null
   const thr =
     t.match(
@@ -93,14 +78,14 @@ export function keywordParse(text, ctx = {}) {
         `(?:more than|above|over|at least|minimum(?: of)?|min\\.?|exceeds?|greater than|>=?|≥)\\s*(?:cart\\s*(?:value|total)?\\s*(?:of)?\\s*)?(?:${RUPEE})?${NUM}`
       )
     ) ??
-    // number first: "Rs.25,000 or more", "25000 and above", "Rs.5000+"
+
     t.match(new RegExp(`(?:${RUPEE})?${NUM}\\s*(?:or more|or above|and above|and up|and over|\\+)`))
   if (thr) {
     minCartValue = num(thr[1])
     t = t.replace(thr[0], ' ')
   }
 
-  // 2. value
+
   let type = null
   let value = null
   const pct = t.match(/(\d+(?:\.\d+)?)\s*(?:%|percent)/)
@@ -113,7 +98,7 @@ export function keywordParse(text, ctx = {}) {
     value = num(flat[1] ?? flat[2])
   }
 
-  // 2b. more than one distinct discount value means more than one rule
+
   const values = new Set([
     ...[...t.matchAll(/(\d+(?:\.\d+)?)\s*(?:%|percent)/g)].map((m) => `p${m[1]}`),
     ...[...t.matchAll(new RegExp(`${RUPEE}${NUM}|${NUM}\\s*(?:rs\\.?|rupees|₹)`, 'g'))].map((m) => `r${m[1] ?? m[2]}`),
@@ -122,7 +107,7 @@ export function keywordParse(text, ctx = {}) {
     return { resolvable: false, reason: 'That describes more than one discount. Add them one rule at a time.' }
   }
 
-  // 3. scope / target
+
   const findKnown = (list = []) => list.find((n) => t.includes(n.toLowerCase()))
   const brand = findKnown(ctx.brands)
   const platform = findKnown(ctx.platforms)
@@ -158,7 +143,7 @@ export function keywordParse(text, ctx = {}) {
   return { resolvable: true, scope, appliesTo, type, value, stackable, minCartValue }
 }
 
-// ── Public API ───────────────────────────────────────────────────
+
 
 function finish(raw, ctx, source) {
   if (raw.resolvable === false) {

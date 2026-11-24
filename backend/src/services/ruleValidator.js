@@ -1,14 +1,3 @@
-/**
- * ruleValidator.js
- *
- * The single gate every parsed rule passes through before it reaches the engine.
- * LLM output is untrusted: it is checked field by field, never spread blindly.
- *
- * validateRule(raw, ctx) -> { ok, rule?, errors[], warnings[] }
- *   ctx: { brands: string[], platforms: string[] }  (names seen in cart/rules, used to
- *        canonicalise casing and to warn when a rule cannot match anything)
- */
-
 const SCOPES = ['brand', 'platform', 'cart']
 const TYPES = ['percentage', 'flat']
 

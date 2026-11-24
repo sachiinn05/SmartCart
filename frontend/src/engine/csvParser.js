@@ -1,24 +1,6 @@
-/**
- * csvParser.js
- *
- * Converts raw CSV text into the typed objects the discount engine expects.
- * Uses papaparse for reliable CSV parsing, then maps column names to the
- * internal data shapes.
- *
- * Expected rules.csv columns:
- *   rule_id, scope, applies_to, type, value, stackable, min_cart_value
- *   (applies_to is blank for cart rules; min_cart_value is required for them)
- *
- * Expected cart.csv columns:
- *   item_id, product, brand, platform, base_price
- */
-
 import Papa from 'papaparse'
 
-/**
- * Parses the raw text of rules.csv into an array of DiscountRule objects.
- * Returns { data, errors } where errors is an array of row-level issues.
- */
+
 export function parseRulesCSV(csvText) {
   const { data: rows, errors: parseErrors } = Papa.parse(csvText.trim(), {
     header: true,
@@ -34,7 +16,7 @@ export function parseRulesCSV(csvText) {
   const errors = []
 
   rows.forEach((row, i) => {
-    const rowNum = i + 2 // account for header row
+    const rowNum = i + 2
     const missing = []
 
     if (!row.rule_id) missing.push('rule_id')
@@ -94,10 +76,7 @@ export function parseRulesCSV(csvText) {
   return { data, errors }
 }
 
-/**
- * Parses the raw text of cart.csv into an array of CartItem objects.
- * Returns { data, errors } where errors is an array of row-level issues.
- */
+
 export function parseCartCSV(csvText) {
   const { data: rows, errors: parseErrors } = Papa.parse(csvText.trim(), {
     header: true,

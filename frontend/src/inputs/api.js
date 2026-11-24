@@ -1,10 +1,3 @@
-/**
- * api.js - the only place the frontend talks to the backend.
- *
- * Input modes (inputs/*) call these and return plain engine objects.
- * The engine never imports anything from here.
- */
-
 async function request(url, options) {
   let res
   try {

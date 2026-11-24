@@ -1,10 +1,3 @@
-/**
- * PdfUploader.jsx
- *
- * Upload a cart PDF. The file is parsed by the backend; the parent decides what to do
- * with the resulting CartItem[] (it replaces the cart).
- */
-
 import { useRef, useState } from 'react'
 import { parseCartFromPdf } from '../inputs/pdfInput.js'
 
@@ -25,7 +18,6 @@ export default function PdfUploader({ rules, cartItems, onItems, onErrors }) {
         onItems(items, file.name)
         setFileName(file.name)
       }
-      // No valid rows: keep the current cart rather than replacing it with nothing.
     } catch (err) {
       onErrors([err.message])
     } finally {

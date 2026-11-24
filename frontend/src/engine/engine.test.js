@@ -44,7 +44,7 @@ describe('cart rule edge cases', () => {
   it('a newly added brand rule is picked up on re-run', () => {
     const extra = { ruleId: 'RULE-05', scope: 'brand', appliesTo: 'Nordic Basics', type: 'percentage', value: 20, stackable: true }
     const out = calculateCart(cart, [...rules, extra])
-    expect(out.items[4].finalPrice).toBeLessThan(382) // stacks on top of the 15%
+    expect(out.items[4].finalPrice).toBeLessThan(382)
   })
 })
 
@@ -97,7 +97,7 @@ describe('tough rules file with 45 items', () => {
     expect(out.offer.ruleIds).toEqual(['RULE-11', 'RULE-12'])
   })
   it('higher-% brand beats platform: LivSpace 18% over Amazon 15%', () => {
-    const shelf = out.items.find((i) => i.itemId === 'ITEM-05') // Rs.449 LivSpace Pro on Amazon India
+    const shelf = out.items.find((i) => i.itemId === 'ITEM-05')
     expect(shelf.finalPrice).toBe(449 - Math.round(449 * 0.18))
   })
   it('an item with no matching rule says so', () => {

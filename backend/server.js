@@ -4,7 +4,6 @@ import { createMongoStore } from './src/persistence/mongoStore.js'
 
 const PORT = process.env.PORT || 3001
 
-// Persistence is optional: with no MONGODB_URI the app runs fully in-memory.
 let store = null
 if (process.env.MONGODB_URI) {
   try {

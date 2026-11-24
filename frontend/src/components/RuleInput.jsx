@@ -1,10 +1,3 @@
-/**
- * RuleInput.jsx
- *
- * Plain-English rule entry with a confirmation step.
- * Nothing is added to the rule list until the user confirms the parsed fields.
- */
-
 import { useState } from 'react'
 import { parseRuleFromText } from '../inputs/nlRuleInput.js'
 
@@ -38,7 +31,7 @@ export function describeRuleFields(rule) {
 export default function RuleInput({ rules, cartItems, onConfirm }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pending, setPending] = useState(null) // { rule, warnings, source }
+  const [pending, setPending] = useState(null)
   const [message, setMessage] = useState('')
 
   async function handleParse() {

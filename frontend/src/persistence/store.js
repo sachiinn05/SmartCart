@@ -1,11 +1,3 @@
-/**
- * store.js - optional server-side persistence.
- *
- * Every function is safe to call when no database is configured: the server answers
- * { enabled: false } and these helpers become no-ops. Failures never throw into the UI.
- * The visitor is identified by a random id kept in this browser's localStorage.
- */
-
 const KEY = 'smartcart-session'
 
 export function getSessionId() {
@@ -17,7 +9,7 @@ export function getSessionId() {
     }
     return id
   } catch {
-    return null // storage blocked: persistence quietly off
+    return null
   }
 }
 

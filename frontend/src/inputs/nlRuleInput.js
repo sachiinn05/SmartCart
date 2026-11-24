@@ -1,10 +1,3 @@
-/**
- * nlRuleInput.js - "natural language rule" input mode.
- *
- * Adapts free text -> DiscountRule. Knows nothing about how discounts are calculated.
- * Returns { status: 'ok', rule, warnings, source } | { status: 'unresolvable', message }.
- */
-
 import { parseRuleRequest } from './api.js'
 
 export function nextRuleId(rules) {
@@ -15,7 +8,6 @@ export function nextRuleId(rules) {
   return `RULE-${String(max + 1).padStart(2, '0')}`
 }
 
-/** Brand / platform names already known from the cart and rules (helps the LLM match spelling). */
 export function knownNames(rules, cartItems) {
   const uniq = (xs) => [...new Set(xs.filter(Boolean))]
   return {

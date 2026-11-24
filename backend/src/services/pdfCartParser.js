@@ -1,25 +1,5 @@
-/**
- * pdfCartParser.js
- *
- * Extracts cart rows from a PDF with columns: Product, Brand, Platform, Base Price.
- *
- * extractPdfText(buffer)        -> string   (thin wrapper over pdf-parse)
- * parseCartText(text, known)    -> { items, errors }   (pure, unit-tested)
- *
- * Row strategy, in order:
- *   1. Split on tabs / 2+ spaces. Exactly 3 cells before the price -> done.
- *   2. Otherwise anchor on the trailing price, then find a known platform
- *      (and brand) from names we already know about. Unknown -> row is reported, not guessed.
- * A bad row never aborts the file: valid rows load, bad rows are listed with their line.
- */
-
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
 
-/**
- * Reads the PDF with pdf.js and rebuilds visual lines from text positions:
- * items sharing a baseline form one line; a wide horizontal gap becomes a TAB,
- * which is what preserves table columns (plain text extraction often loses them).
- */
 export async function extractPdfText(buffer) {
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(buffer),
@@ -40,7 +20,7 @@ export async function extractPdfText(buffer) {
       if (row) row.cells.push(cell)
       else rows.push({ y, cells: [cell] })
     }
-    rows.sort((a, b) => b.y - a.y) // top to bottom
+    rows.sort((a, b) => b.y - a.y)
     for (const row of rows) {
       row.cells.sort((a, b) => a.x - b.x)
       let line = ''
@@ -89,7 +69,6 @@ export function parseCartText(text, known = {}) {
   const lines = text.split(/\r?\n/)
 
   lines.forEach((raw, idx) => {
-    // pdf-parse can emit non-breaking spaces; normalise
     const line = raw.replace(/ /g, ' ').trim()
     if (!line) return
     if (HEADER_RE.test(line)) return
@@ -97,7 +76,7 @@ export function parseCartText(text, known = {}) {
     if (/^order\s*#/i.test(line)) return
 
     const priced = stripPrice(line)
-    if (!priced) return // not a data row (titles, footers)
+    if (!priced) return
 
     if (!(priced.price > 0)) {
       errors.push(`Line ${idx + 1}: price must be greater than 0 ("${line}")`)
