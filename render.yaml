@@ -15,3 +15,5 @@ services:
         sync: false   # paste your key in the Render dashboard (optional)
       - key: GROQ_MODEL
         value: openai/gpt-oss-20b
+      - key: MONGODB_URI
+        sync: false   # optional: MongoDB Atlas connection string; empty = in-memory only
