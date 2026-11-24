@@ -34,8 +34,9 @@ SmartCart/
 ├── backend/                  Express API (+ serves the built frontend in production)
 │   ├── server.js
 │   └── src/
-│       ├── routes/           POST /api/parse-rule, POST /api/parse-pdf, GET /api/health
-│       └── services/         ruleParser (LLM + fallback), ruleValidator, pdfCartParser
+│       ├── routes/           parse-rule, parse-pdf, state/rules/cart/history, health
+│       ├── services/         ruleParser (LLM + fallback), ruleValidator, pdfCartParser
+│       └── persistence/      optional MongoDB store (+ in-memory store used by tests)
 ├── sample-data/              rules.csv, cart.csv, cart.pdf
 └── render.yaml               one-click Render blueprint
 ```
@@ -72,6 +73,17 @@ Note: Render's free plan sleeps after inactivity, so the first request can take 
 - If a PDF flattens columns into single-spaced text, the parser falls back to known platform/brand names. If it still cannot split the row, it reports the row instead of guessing.
 - Assumption: scanned/image PDFs are not supported (no OCR). Item IDs are generated (`ITEM-01`...) as the PDF has none.
 
-**No persistence.** All state is in the browser session, per the brief.
+**Persistence is optional.** Opptra's brief says in-memory state is enough, so the app runs that way by default. If `MONGODB_URI` is set, the backend also saves the rules, the cart and a history of calculations to MongoDB, and restores them on reload. With no URI (or if the database is unreachable at startup) nothing changes: the app stays in-memory and the UI hides the history section. See "Optional: MongoDB" below.
 
 **Proposed alternative.** The assignment's PDF format has no item ID or currency column. A CSV or JSON export from the order system would be more reliable than parsing PDF text; PDF support is best-effort.
+
+## Optional: MongoDB
+
+Set `MONGODB_URI` in `backend/.env` (locally) or in the Render dashboard (a free MongoDB Atlas cluster works). Then:
+- **Saved:** discount rules, cart items, and the last 50 calculations (items, cart offer, final total).
+- **Per visitor:** each browser gets a random id (kept in localStorage), and all data is scoped to it, so people using the same deployment never see each other's data. There is no login, so clearing browser storage starts a fresh session. "Clear my saved data" deletes everything for that browser.
+- **Expiry:** documents are removed automatically after 30 days (TTL index).
+- **Untrusted input:** the server rebuilds every rule, item and history entry field by field with type and size limits before saving, so extra or malformed fields from a client are dropped or rejected.
+- **Failure mode:** if a save fails, the UI keeps working; only persistence is affected.
+
+Check `GET /api/health`: `"database": "mongo"` means it is connected, `false` means in-memory.

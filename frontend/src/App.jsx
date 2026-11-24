@@ -7,16 +7,21 @@
  *   NL rule     ─┘
  * Results are derived, so any input change re-runs the engine automatically
  * once the user has calculated at least once.
+ *
+ * Persistence is optional: if the server has a database, rules/cart are restored on load,
+ * saved on change, and every calculation is logged. Otherwise nothing here does anything.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import CsvUploader from './components/CsvUploader.jsx'
 import PdfUploader from './components/PdfUploader.jsx'
 import RuleInput from './components/RuleInput.jsx'
 import DataTable from './components/DataTable.jsx'
 import ErrorBanner from './components/ErrorBanner.jsx'
 import { parseRulesCSV, parseCartCSV } from './engine/csvParser.js'
+import HistoryPanel from './components/HistoryPanel.jsx'
 import { calculateCart } from './engine/discountEngine.js'
+import { loadState, saveRules, saveCart, saveHistory, loadHistory, clearSaved } from './persistence/store.js'
 
 const inr = (v) => `Rs.${v.toLocaleString('en-IN')}`
 const cap = (v) => v.charAt(0).toUpperCase() + v.slice(1)
@@ -96,11 +101,64 @@ export default function App() {
 
   const [calculated, setCalculated] = useState(false)
 
+  // optional persistence
+  const [dbEnabled, setDbEnabled] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [history, setHistory] = useState([])
+  const skipNextHistory = useRef(false)
+
   const canCalculate = rules.length > 0 && cartItems.length > 0
   const results = useMemo(
     () => (calculated && canCalculate ? calculateCart(cartItems, rules) : null),
     [calculated, canCalculate, cartItems, rules]
   )
+
+  // ── Persistence ──
+
+  // Restore saved rules/cart once on load.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const state = await loadState()
+      if (cancelled) return
+      if (state.enabled) {
+        setDbEnabled(true)
+        if (state.rules?.length) { setRules(state.rules); setRulesFileName('saved rules') }
+        if (state.cartItems?.length) { setCartItems(state.cartItems); setCartFileName('saved cart') }
+        if (state.rules?.length && state.cartItems?.length) {
+          skipNextHistory.current = true // restoring is not a new calculation
+          setCalculated(true)
+        }
+        const h = await loadHistory()
+        if (!cancelled) setHistory(h.history ?? [])
+      }
+      setLoaded(true)
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => { if (loaded && dbEnabled) saveRules(rules) }, [rules, loaded, dbEnabled])
+  useEffect(() => { if (loaded && dbEnabled) saveCart(cartItems) }, [cartItems, loaded, dbEnabled])
+
+  // Log each new calculation (debounced so rapid changes make one entry).
+  useEffect(() => {
+    if (!results || !loaded || !dbEnabled) return
+    if (skipNextHistory.current) { skipNextHistory.current = false; return }
+    const t = setTimeout(async () => {
+      await saveHistory(results)
+      const h = await loadHistory()
+      setHistory(h.history ?? [])
+    }, 800)
+    return () => clearTimeout(t)
+  }, [results, loaded, dbEnabled])
+
+  async function handleClearSaved() {
+    await clearSaved()
+    setRules([]); setRulesErr([]); setRulesFileName('')
+    setCartItems([]); setCartErrors([]); setCartFileName('')
+    setCalculated(false)
+    setHistory([])
+  }
 
   // ── Handlers ──
 
@@ -135,7 +193,9 @@ export default function App() {
     <div style={S.page}>
       <div style={S.header}>
         <div style={S.logoTxt}>O<span style={S.logoSpan}>pp</span>tra</div>
-        <div style={S.headerSub}>Discount Engine</div>
+        <div style={S.headerSub}>
+          Discount Engine{dbEnabled && <span style={{ marginLeft: 12, color: '#7ddc96' }}>● saved to database</span>}
+        </div>
       </div>
 
       <div style={S.main}>
@@ -209,6 +269,13 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {dbEnabled && (
+          <div style={S.section}>
+            <div style={S.sectionTitle}>History</div>
+            <HistoryPanel history={history} onClear={handleClearSaved} />
           </div>
         )}
       </div>
