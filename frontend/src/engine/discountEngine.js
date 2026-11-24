@@ -55,27 +55,30 @@ export function ruleMatchesItem(item, rule) {
 /**
  * Calculates the rupee discount a rule gives on a given price.
  * Uses the provided price, not the original base price — important for stacking.
+ * Never exceeds the price itself: a Rs.500 flat offer on a Rs.399 item saves Rs.399, not Rs.500,
+ * so a final price can never go negative.
  */
 export function calculateDiscountAmount(price, rule) {
-  if (rule.type === 'percentage') {
-    return Math.round(price * rule.value / 100)
-  }
-  if (rule.type === 'flat') {
-    return rule.value
-  }
-  return 0
+  let amount = 0
+  if (rule.type === 'percentage') amount = Math.round(price * rule.value / 100)
+  else if (rule.type === 'flat') amount = rule.value
+  return Math.max(0, Math.min(price, amount))
 }
 
 /**
  * Builds the customer-facing reasoning string for an applied rule.
+ * `saved` is the rupee amount actually taken off; when a flat offer is larger than the
+ * remaining price the text says so instead of claiming the full offer value.
  */
-export function ruleToReasoning(rule) {
+export function ruleToReasoning(rule, saved = rule.value) {
   const scopeLabel = rule.scope === 'brand' ? 'Brand' : rule.scope === 'cart' ? 'Cart' : 'Platform'
   if (rule.type === 'percentage') {
     return `${scopeLabel} offer: ${rule.value}% off`
   }
   if (rule.type === 'flat') {
-    return `${scopeLabel} offer: Rs.${rule.value} off`
+    return saved < rule.value
+      ? `${scopeLabel} offer: Rs.${saved} off (Rs.${rule.value} offer, limited to the item price)`
+      : `${scopeLabel} offer: Rs.${rule.value} off`
   }
   return `${scopeLabel} offer applied`
 }
@@ -131,16 +134,12 @@ export function applyDiscounts(item, rules) {
   const appliedRules = []
   const reasoningParts = []
 
-  if (winner) {
-    price -= calculateDiscountAmount(price, winner)
-    appliedRules.push(winner.ruleId)
-    reasoningParts.push(ruleToReasoning(winner))
-  }
-
-  for (const rule of stackable) {
-    price -= calculateDiscountAmount(price, rule)
+  for (const rule of [winner, ...stackable]) {
+    if (!rule) continue
+    const saved = calculateDiscountAmount(price, rule)
+    price -= saved
     appliedRules.push(rule.ruleId)
-    reasoningParts.push(ruleToReasoning(rule))
+    reasoningParts.push(ruleToReasoning(rule, saved))
   }
 
   const finalPrice = Math.round(price)

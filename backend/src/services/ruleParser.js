@@ -31,6 +31,10 @@ Rules:
 - stackable is true only if the text says it stacks/combines with other offers; otherwise false.
 - minCartValue only for cart scope, in rupees.
 
+A rule has ONE target: a brand, OR a platform, OR the whole cart with a minimum value. It cannot combine them
+(e.g. "25% off Nykaa Home only if cart is above 50000" is NOT supported), and the text must describe exactly ONE rule
+(not "20% off X and 15% off Y"). In those cases reply resolvable false and explain in the reason.
+
 If a value, a target, or a cart threshold is missing or vague (e.g. "a discount for big orders"), reply:
 {"resolvable": false, "reason": "<one short sentence telling the user what to specify>"}
 Never invent numbers or names.`
@@ -83,11 +87,14 @@ export function keywordParse(text, ctx = {}) {
 
   // 1. threshold ("more than / above / over / at least / minimum  Rs.5,000")
   let minCartValue = null
-  const thr = t.match(
-    new RegExp(
-      `(?:more than|above|over|at least|minimum(?: of)?|min\\.?|exceeds?|greater than|>=?|≥)\\s*(?:cart\\s*(?:value|total)?\\s*(?:of)?\\s*)?(?:${RUPEE})?${NUM}`
-    )
-  )
+  const thr =
+    t.match(
+      new RegExp(
+        `(?:more than|above|over|at least|minimum(?: of)?|min\\.?|exceeds?|greater than|>=?|≥)\\s*(?:cart\\s*(?:value|total)?\\s*(?:of)?\\s*)?(?:${RUPEE})?${NUM}`
+      )
+    ) ??
+    // number first: "Rs.25,000 or more", "25000 and above", "Rs.5000+"
+    t.match(new RegExp(`(?:${RUPEE})?${NUM}\\s*(?:or more|or above|and above|and up|and over|\\+)`))
   if (thr) {
     minCartValue = num(thr[1])
     t = t.replace(thr[0], ' ')
@@ -106,12 +113,27 @@ export function keywordParse(text, ctx = {}) {
     value = num(flat[1] ?? flat[2])
   }
 
+  // 2b. more than one distinct discount value means more than one rule
+  const values = new Set([
+    ...[...t.matchAll(/(\d+(?:\.\d+)?)\s*(?:%|percent)/g)].map((m) => `p${m[1]}`),
+    ...[...t.matchAll(new RegExp(`${RUPEE}${NUM}|${NUM}\\s*(?:rs\\.?|rupees|₹)`, 'g'))].map((m) => `r${m[1] ?? m[2]}`),
+  ])
+  if (values.size > 1) {
+    return { resolvable: false, reason: 'That describes more than one discount. Add them one rule at a time.' }
+  }
+
   // 3. scope / target
   const findKnown = (list = []) => list.find((n) => t.includes(n.toLowerCase()))
   const brand = findKnown(ctx.brands)
   const platform = findKnown(ctx.platforms)
   let scope = null
   let appliesTo = null
+  if (minCartValue !== null && (brand || platform)) {
+    return {
+      resolvable: false,
+      reason: `A rule can apply to ${brand || platform} or to the cart total, not both. Add them as separate rules.`,
+    }
+  }
   if (minCartValue !== null && /cart|order|basket|total|value/.test(text.toLowerCase())) {
     scope = 'cart'
   } else if (brand) {

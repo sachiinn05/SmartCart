@@ -41,6 +41,8 @@ export function validateRule(raw, ctx = {}) {
   if (!Number.isFinite(value) || value <= 0) errors.push('value must be a positive number')
   else if (type === 'percentage' && value > 100) errors.push('a percentage discount cannot exceed 100%')
 
+  if (type === 'percentage' && value === 100) warnings.push('100% off makes matching items free')
+
   const stackable = raw.stackable === true || raw.stackable === 'true'
 
   let appliesTo = ''

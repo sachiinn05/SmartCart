@@ -54,3 +54,54 @@ describe('csv parsing of cart rules', () => {
     expect(errors[0]).toMatch(/min_cart_value/)
   })
 })
+
+describe('discounts never exceed the item price', () => {
+  const flat500 = { ruleId: 'R', scope: 'brand', appliesTo: 'Kraft & Co', type: 'flat', value: 500, stackable: false }
+  const item = { itemId: 'I1', product: 'Pen Stand', brand: 'Kraft & Co', platform: 'Meesho', basePrice: 399 }
+
+  it('a Rs.500 flat offer on a Rs.399 item gives Rs.0, not a negative price', () => {
+    const r = calculateCart([item], [flat500]).items[0]
+    expect(r.finalPrice).toBe(0)
+    expect(r.totalDiscount).toBe(399)
+  })
+  it('the offer text states the real saving, not the headline value', () => {
+    const r = calculateCart([item], [flat500]).items[0]
+    expect(r.reasoning).toContain('Rs.399 off')
+    expect(r.reasoning).toContain('limited to the item price')
+  })
+  it('a flat offer smaller than the price reads normally', () => {
+    const r = calculateCart([{ ...item, basePrice: 1000 }], [flat500]).items[0]
+    expect(r.finalPrice).toBe(500)
+    expect(r.reasoning).toBe('Brand offer: Rs.500 off')
+  })
+  it('a stackable flat offer cannot push an already-discounted price below zero', () => {
+    const stack = { ruleId: 'S', scope: 'platform', appliesTo: 'Meesho', type: 'flat', value: 75, stackable: true }
+    const r = calculateCart([{ ...item, basePrice: 99 }], [flat500, stack]).items[0]
+    expect(r.finalPrice).toBe(0)
+  })
+})
+
+describe('tough rules file with 45 items', () => {
+  const toughRules = parseRulesCSV(fs.readFileSync(path.join(dir, 'rules-tough.csv'), 'utf8')).data
+  const bigCart = parseCartCSV(fs.readFileSync(path.join(dir, 'cart-large.csv'), 'utf8')).data
+  const out = calculateCart(bigCart, toughRules)
+
+  it('parses 12 rules and 45 items with no errors', () => {
+    expect(toughRules).toHaveLength(12)
+    expect(bigCart).toHaveLength(45)
+  })
+  it('no item ever has a negative final price', () => {
+    expect(out.items.every((i) => i.finalPrice >= 0)).toBe(true)
+  })
+  it('picks the larger of two cart rules and stacks the stackable one', () => {
+    expect(out.offer.ruleIds).toEqual(['RULE-11', 'RULE-12'])
+  })
+  it('higher-% brand beats platform: LivSpace 18% over Amazon 15%', () => {
+    const shelf = out.items.find((i) => i.itemId === 'ITEM-05') // Rs.449 LivSpace Pro on Amazon India
+    expect(shelf.finalPrice).toBe(449 - Math.round(449 * 0.18))
+  })
+  it('an item with no matching rule says so', () => {
+    expect(out.items.find((i) => i.itemId === 'ITEM-04').reasoning).toBe('No offers available')
+  })
+})
+

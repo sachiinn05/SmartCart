@@ -81,3 +81,32 @@ test('pdf: no table at all gives a helpful error', () => {
   assert.equal(items.length, 0)
   assert.match(errors[0], /Expected a table/)
 })
+
+// ── tough rule text ──
+test('fallback: brand + cart threshold in one sentence is refused, not silently reduced', () => {
+  const r = keywordParse('25 percent off nykaa home but only if the cart is above 50000', { platforms: ['Nykaa Home'], brands: [] })
+  assert.equal(r.resolvable, false)
+  assert.match(r.reason, /not both/)
+})
+test('fallback: two discounts in one sentence are refused', () => {
+  const r = keywordParse('20% off Natura Casa and 15% off Flipkart', ctx)
+  assert.equal(r.resolvable, false)
+  assert.match(r.reason, /one rule at a time/)
+})
+test('fallback: decimals and Indian-format thresholds', () => {
+  const a = keywordParse('12.5% off Natura Casa, stackable', ctx)
+  assert.equal(a.value, 12.5)
+  const b = keywordParse('10% off if cart is above Rs.1,00,000', ctx)
+  assert.equal(b.minCartValue, 100000)
+})
+test('validator warns that 100% off makes items free', () => {
+  const r = validateRule({ scope: 'platform', appliesTo: 'Noon', type: 'percentage', value: 100 }, ctx)
+  assert.equal(r.ok, true)
+  assert.ok(r.warnings.some((w) => /free/.test(w)))
+})
+
+test('fallback: two rupee amounts are two rules; one amount plus a threshold is one rule', () => {
+  assert.equal(keywordParse('Rs.100 off Flipkart and Rs.200 off Noon', ctx).resolvable, false)
+  const ok = keywordParse('Rs.2,000 off orders of Rs.25,000 or more', ctx)
+  assert.deepEqual([ok.scope, ok.type, ok.value, ok.minCartValue], ['cart', 'flat', 2000, 25000])
+})
